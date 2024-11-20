@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Holograma 3D</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Evita los deslizadores */
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        display: block; /* Asegura que no haya márgenes extras en el canvas */
+      }
+    </style>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://threejs.org/build/three.module.js",
+          "three/addons/": "https://threejs.org/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { PeppersGhostEffect } from 'three/addons/effects/PeppersGhostEffect.js';
+      import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+      let container;
+      let camera, scene, renderer, effect;
+      let mixer1, mixer2;
+
+      init();
+
+      function init() {
+        // Crear contenedor y cámara
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 100000);
+        scene = new THREE.Scene();
+
+        // Crear luces
+        createLighting();
+
+        // Configuramos el renderizador
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Aplicamos el efecto PeppersGhostEffect
+        effect = new PeppersGhostEffect(renderer);
+        effect.setSize(window.innerWidth, window.innerHeight);
+        effect.cameraDistance = 1;
+        effect.separation = 25; // Reduce el espacio entre las vistas
+
+        // Actualizamos la ventana en caso de que se redimensione
+        window.addEventListener('resize', onWindowResize);
+
+        // Cargar el modelo original (Hip Hop Dancing)
+        const loader1 = new FBXLoader();
+        loader1.load('Hip Hop Dancing.fbx', function (object) {
+          object.scale.set(0.003, 0.003, 0.003); // Escala del modelo original
+          object.position.set(0, -0.3, 0); // Posición del modelo
+          scene.add(object);
+
+          // Animaciones del modelo original
+          mixer1 = new THREE.AnimationMixer(object);
+          object.traverse(function (child) {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+
+          object.animations.forEach((clip) => {
+            mixer1.clipAction(clip).play();
+          });
+        });
+
+        // Cargar el modelo de los billetes
+        const loader2 = new FBXLoader();
+        loader2.load('source/money.FBX', function (object) {
+          object.scale.set(0.0035, 0.0035, 0.0035); // Escala más pequeña para los billetes
+          object.position.set(0, -0.3, -0.05); // Posición del modelo de los billetes
+          object.rotation.set(5, 0, 0); // Rotacion del modelo de los billetes
+          scene.add(object);
+
+          // Animaciones del modelo de los billetes
+          mixer2 = new THREE.AnimationMixer(object);
+          object.traverse(function (child) {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+
+          object.animations.forEach((clip) => {
+            mixer2.clipAction(clip).play();
+          });
+        });
+
+        animate(); // Iniciar la animación
+      }
+
+      function createLighting() {
+        // Luz ambiental para iluminación general
+        const ambientLight = new THREE.AmbientLight(0xffffff, 5);
+        scene.add(ambientLight);
+
+        // Luz direccional que apunta hacia el objeto
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 5);
+        directionalLight.position.set(10, 10, 10);
+        scene.add(directionalLight);
+
+        // Luz de relleno para suavizar sombras
+        const fillLight = new THREE.DirectionalLight(0xffffff, 5);
+        fillLight.position.set(-10, -10, -10);
+        scene.add(fillLight);
+
+        directionalLight.castShadow = true;
+        fillLight.castShadow = true;
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        effect.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        if (mixer1) mixer1.update(0.01); // Actualiza las animaciones del modelo original
+        if (mixer2) mixer2.update(0.01); // Actualiza las animaciones del modelo de los billetes
+
+        effect.render(scene, camera);
+      }
+    </script>
+  </body>
+</html>
